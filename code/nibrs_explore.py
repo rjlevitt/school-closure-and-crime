@@ -42,13 +42,38 @@ def prep_offenders(data_path):
     return df
 
 
-def read_in_incident(data_path):
+def prep_incident(data_path):
     incident = pd.read_csv(os.path.join(data_path, 'NIBRS_incident.csv'))
     agency = pd.read_csv(os.path.join(data_path, 'agencies.csv'))
     df = incident.merge(agency, how='inner', on=['AGENCY_ID', 'DATA_YEAR'])
-    return incident
+    df = df[[
+        'DATA_YEAR',
+        'AGENCY_ID',
+        'INCIDENT_ID',
+        'NIBRS_MONTH_ID',
+        'SUBMISSION_DATE',
+        'INCIDENT_DATE',
+        'INCIDENT_HOUR',
+        'CLEARED_EXCEPT_ID',
+        'CLEARED_EXCEPT_DATE',
+        'ORI',
+        'LEGACY_ORI',
+        'REPORTING_TYPE',
+        'UCR_AGENCY_NAME',
+        'STATE_ABBR',
+        'AGENCY_TYPE_NAME',
+        'POPULATION',
+        'POPULATION_GROUP_DESC',
+        'COVERED_FLAG',
+        'COUNTY_NAME']]
+    return df
 
 
 if __name__ == '__main__':
     dat_offense = prep_offense(data_path=get_data_path())
     dat_offender = prep_offenders(data_path=get_data_path())
+    dat_incident = prep_incident(data_path=get_data_path())
+
+    dat = dat_incident.merge(dat_offense, how="inner", on=['DATA_YEAR', 'INCIDENT_ID'])
+    dat = dat.merge(dat_offender, how="inner", on=['DATA_YEAR', 'INCIDENT_ID'])
+    dat.to_csv("~/Desktop/nibrs_co_2020.csv", index=False)
