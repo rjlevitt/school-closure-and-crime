@@ -19,3 +19,4 @@ def read_merge_nibrs(data_path):
 
 if __name__ == '__main__':
     dat = read_merge_nibrs(data_path=get_data_path())
+    dat
