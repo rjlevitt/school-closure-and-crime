@@ -1,6 +1,8 @@
 import pandas as pd
 import os
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def get_data_path():
     cwd = os.path.abspath(os.path.dirname(__file__))
@@ -31,11 +33,24 @@ def heat_map(districts):
         'TimePeriodStart',
         '912_code']]
     districts = districts.pivot_table(index=['DistrictName'], columns='TimePeriodStart', values='912_code')
+    districts = districts.iloc[:, ::-1]
+    plt.clf()
+    plt.close()
+    plot_dims = (6, 28)
+    fig, ax = plt.subplots(figsize=plot_dims)
 
-    cmap = plt.get_cmap('jet', 3)
-    p1 = sns.heatmap(districts, cmap=cmap, vmin=1, vmax=3)
-    plt.show()
+    cmap = plt.get_cmap('Blues', 3)
+    ax = sns.heatmap(districts, cmap=cmap, vmin=1, vmax=3, square=True, cbar=False, linecolor='black')
+    ax.set_xlabel(xlabel="")
+    ax.set_ylabel(ylabel="District")
+
+    # save
+    cwd = os.path.abspath(os.path.dirname(__file__))
+
+    fig.tight_layout()
+    plt.savefig(os.path.join(cwd, "CO_teaching_methods_over_time.png"))
 
 
 if __name__ == '__main__':
     schools, districts = read_data(data_path=get_data_path())
+    heat_map(districts)
