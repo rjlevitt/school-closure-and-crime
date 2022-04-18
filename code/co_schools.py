@@ -34,13 +34,15 @@ def heat_map(districts):
         '912_code']]
     districts = districts.pivot_table(index=['DistrictName'], columns='TimePeriodStart', values='912_code')
     districts = districts.iloc[:, ::-1]
+    districts
     plt.clf()
     plt.close()
-    plot_dims = (6, 28)
+    plt.rcParams.update({'font.size': 8})
+    plot_dims = (8, 28)
     fig, ax = plt.subplots(figsize=plot_dims)
 
     cmap = plt.get_cmap('Blues', 3)
-    ax = sns.heatmap(districts, cmap=cmap, vmin=1, vmax=3, square=True, cbar=False, linecolor='black')
+    ax = sns.heatmap(districts, cmap=cmap, vmin=1, vmax=3, square=True, cbar=False, linewidths=0.5, linecolor='white')
     ax.set_xlabel(xlabel="")
     ax.set_ylabel(ylabel="District")
 
