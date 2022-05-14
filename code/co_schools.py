@@ -13,7 +13,8 @@ def get_data_path():
 def read_data(data_path):
     schools = pd.read_csv(os.path.join(data_path, 'Colorado_Schools_LearningModelData_Final.csv'))
     districts = pd.read_csv(os.path.join(data_path, 'Colorado_Districts_LearningModelData_Final.csv'))
-    return schools, districts
+    school_info = pd.read_csv(os.path.join(data_path, 'nces_data.csv'), encoding='ISO-8859-1')
+    return schools, districts, school_info
 
 
 def school_closure_code(df):
@@ -54,5 +55,11 @@ def heat_map(districts):
 
 
 if __name__ == '__main__':
-    schools, districts = read_data(data_path=get_data_path())
+    schools, districts, school_info = read_data(data_path=get_data_path())
+    schools['NCESSchoolID'].isin(school_info['NCES_school_ID']
+    dat = schools.merge(school_info,
+                        how="left",
+                        left_on='NCESSchoolID',
+                        right_on='NCES_school_ID')
+    dat.to_csv("school.csv", index=False)
     heat_map(districts)
