@@ -56,10 +56,21 @@ def heat_map(districts):
 
 if __name__ == '__main__':
     schools, districts, school_info = read_data(data_path=get_data_path())
-    schools['NCESSchoolID'].isin(school_info['NCES_school_ID']
+    schools = schools[[
+        'StateName',
+        'SchoolName',
+        'NCESSchoolID',
+        'DistrictName',
+        'TimePeriodInterval',
+        'TimePeriodStart',
+        'TimePeriodEnd',
+        'LearningModel']]
     dat = schools.merge(school_info,
                         how="left",
                         left_on='NCESSchoolID',
                         right_on='NCES_school_ID')
-    dat.to_csv("school.csv", index=False)
+
+    cwd = os.path.abspath(os.path.dirname(__file__))
+    dat.to_csv(os.path.join(cwd, 'cleandata', 'co_school_clean.csv'),
+               index=False)
     heat_map(districts)
