@@ -4,8 +4,11 @@ from matplotlib import pyplot as plt
 import matplotlib as mpl
 
 
-def get_data_path(year):
-    cwd = os.path.abspath(os.path.dirname(__file__))
+def get_data_path(year, local=False):
+    cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    if(local):
+        cwd = os.path.abspath(os.path.dirname(__file__))
+
     data_path = os.path.join(cwd, 'rawdata', str(year))
     return data_path
 
@@ -83,7 +86,7 @@ def hs_timeseries_offenses(df, var_name, var_title, color, plot_path):
         hs_dat = hs_dat[hs_dat['CRIME_AGAINST'] == var_name]
 
     # year and month
-    hs_dat['year'] = pd.DatetimeIndex(hs_dat['INCIDENT_DATE']).year
+    hs_dat['year'] = pd.to(hs_dat['INCIDENT_DATE']).year
     hs_dat['month'] = pd.DatetimeIndex(hs_dat['INCIDENT_DATE']).month
 
     # create a count variable and sum
@@ -110,41 +113,34 @@ def hs_timeseries_offenses(df, var_name, var_title, color, plot_path):
     plt.savefig(plot_path)
 
 
-def age_breakdown():
-    df = dat.copy()
+def age_buckets(data):
+
+    # drop missing age data
+    df = data.copy()
     df = df[~df['AGE_NUM'].isna()]
 
-    # how many rows do we loose
-    print(len(dat) - len(df))
-    print(df)
-
-    df['AGE_NUM'].unique()
     df['age_group'] = "None"
-    df.loc[df['AGE_NUM'] < 5, 'age_group'] = "Less than 5"
-    df.loc[(df['AGE_NUM'] >= 5) & (df['AGE_NUM'] < 10), 'age_group'] = "5 to 9"
-    df.loc[(df['AGE_NUM'] >= 10) & (df['AGE_NUM'] < 14), 'age_group'] = "10 " \
-                                                                        "to 13"
-    df.loc[(df['AGE_NUM'] >= 14) & (df['AGE_NUM'] < 19), 'age_group'] = "14 " \
-                                                                        "to 18"
-    df.loc[(df['AGE_NUM'] >= 19) & (df['AGE_NUM'] < 24), 'age_group'] = "19 " \
-                                                                        "to 23"
-    df.loc[(df['AGE_NUM'] >= 24) & (df['AGE_NUM'] < 30), 'age_group'] = "24 " \
-                                                                        "to 29"
-    df.loc[(df['AGE_NUM'] >= 30) & (df['AGE_NUM'] < 46), 'age_group'] = "30 " \
-                                                                        "to 45"
-    df.loc[(df['AGE_NUM'] >= 46) & (df['AGE_NUM'] < 60), 'age_group'] = "46 " \
-                                                                        "to 60"
-    df.loc[(df['AGE_NUM'] >= 60), 'age_group'] = "Greater than 60"
-    df['count'] = 1
-    df_group = df[['age_group', 'count']].groupby(by='age_group',
-                                                  as_index=False).sum()
-    df_group['total'] = df_group['count'].sum()
-    df_group['group_perc'] = df_group['count'] / df_group['total']
 
-    df_group[['age_group', 'count', 'group_perc']]
-    df_group.to_csv("age_data.csv")
-if __name__ == '__main__':
-    year = 2019
+    df.loc[df['AGE_NUM'] < 5, 'age_group'] = "Less than 5"
+    df.loc[(df['AGE_NUM'] >= 5) & (df['AGE_NUM'] < 11), 'age_group'] = "6 to 10"
+    df.loc[(df['AGE_NUM'] >= 11) & (df['AGE_NUM'] < 16), 'age_group'] = "11 " \
+                                                                        "to 15"
+    df.loc[ (df['AGE_NUM'] >= 16) & (df['AGE_NUM'] < 21), 'age_group'] = "16 " \
+                                                                         "to 20"
+    df.loc[(df['AGE_NUM'] >= 21) & (df['AGE_NUM'] < 26), 'age_group'] = "21 " \
+                                                                        "to 25"
+    df.loc[(df['AGE_NUM'] >= 26) & (df['AGE_NUM'] < 31), 'age_group'] = "26 " \
+                                                                        "to 30"
+    df.loc[(df['AGE_NUM'] >= 31) & (df['AGE_NUM'] < 36), 'age_group'] = "30 " \
+                                                                        "to 35"
+    df.loc[(df['AGE_NUM'] >= 36) & (df['AGE_NUM'] < 41), 'age_group'] = "36 " \
+                                                                        "to 40"
+    df.loc[(df['AGE_NUM'] >= 41), 'age_group'] = "Greater than 40"
+
+    return df
+
+
+def full_year_prep(year):
     dat_offense = prep_offense(data_path=get_data_path(year=year))
     dat_offender = prep_offenders(data_path=get_data_path(year=year))
     dat_incident = prep_incident(data_path=get_data_path(year=year))
@@ -156,19 +152,62 @@ if __name__ == '__main__':
     dat = dat.merge(dat_offender,
                     how="inner",
                     on=['DATA_YEAR', 'INCIDENT_ID'])
+    return dat
 
 
+if __name__ == '__main__':
+    dat_19 = full_year_prep(2019)
+    dat_20 = full_year_prep(2020)
 
+    # row bind two data sets
+    dat = pd.concat([dat_19, dat_20])
 
+    # create age buckets
+    dat = age_buckets(dat)
+
+    # add year and month based on indcident dat
+    dat['year'] = pd.to_datetime(dat['INCIDENT_DATE']).dt.strftime('%Y')
+    dat['month'] = pd.to_datetime(dat['INCIDENT_DATE']).dt.strftime('%m')
+
+    # create a count of offenses
+    dat["count"] = 1
+
+    dat = dat[[
+        'AGENCY_ID',
+        'ORI',
+        'COUNTY_NAME',
+        'year',
+        'month',
+        'count',
+        'CRIME_AGAINST',
+        'age_group']]
+
+    # sum offenses
+    dat = dat.groupby(by=['AGENCY_ID',
+                          'ORI',
+                          'COUNTY_NAME',
+                          'year',
+                          'month',
+                          'CRIME_AGAINST',
+                          'age_group'], as_index=False)['count'].sum()
 
     cwd = os.path.abspath(os.path.dirname(__file__))
-    hs_timeseries_offenses(df=dat,
-                           var_name='Person',
-                           var_title=f"Offenses Against Persons in {year} by "
-                                     f"HS "
-                                     "Aged "
-                                     "Offenders",
-                           color='#e377c2',
-                           plot_path=os.path.join(
-                               cwd, 'plots', f'violent_offenses_{year-2000}.png'))
+    dat = dat.rename(columns={
+        'AGENCY_ID': 'agency_id',
+        'ORI': 'ori',
+        'COUNTY_NAME': 'county',
+        'CRIME_AGAINST': 'crimes_against',
+        'age_group': 'age_group'
+    })
+    
+    dat.to_csv("final_crime_co.csv", index=False)
+    # hs_timeseries_offenses(df=dat,
+    #                        var_name='Person',
+    #                        var_title=f"Offenses Against Persons in {year} by "
+    #                                  f"HS "
+    #                                  "Aged "
+    #                                  "Offenders",
+    #                        color='#e377c2',
+    #                        plot_path=os.path.join(
+    #                            cwd, 'plots', f'violent_offenses_{year-2000}.png'))
 
